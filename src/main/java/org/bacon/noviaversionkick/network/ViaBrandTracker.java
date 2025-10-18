@@ -17,7 +17,6 @@ import java.util.WeakHashMap;
 public final class ViaBrandTracker {
     private static final Logger LOGGER = LogManager.getLogger("Noviaversionkick");
     private static final Map<ClientConnection, ClientInfo> CLIENTS = Collections.synchronizedMap(new WeakHashMap<>());
-
     private ViaBrandTracker() {
     }
 
@@ -96,7 +95,7 @@ public final class ViaBrandTracker {
         }
 
         synchronized boolean shouldUseLegacyParticles(ClientConnection connection) {
-            boolean legacy = computeLegacyDecision();
+            boolean legacy = computeLegacyDecision(connection);
             Boolean previousDecision = this.lastLegacyDecision;
             if (previousDecision == null || previousDecision != legacy) {
                 this.lastLegacyDecision = legacy;
@@ -125,7 +124,7 @@ public final class ViaBrandTracker {
             return this.brand == null;
         }
 
-        private boolean computeLegacyDecision() {
+        private boolean computeLegacyDecision(ClientConnection connection) {
             String brand = this.brand;
             if (brand == null) {
                 LOGGER.info("No brand recorded; modern particles will be used");
