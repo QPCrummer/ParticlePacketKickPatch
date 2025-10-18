@@ -53,6 +53,11 @@ public final class ViaBrandTracker {
                 return;
             }
             String sanitized = brand.strip();
+            LOGGER.info(
+                "Raw brand payload received from {}: '{}'",
+                describeConnection(connection),
+                brand
+            );
             if (info == null) {
                 LOGGER.info("Creating new tracking entry for {}", describeConnection(connection));
                 info = new ClientInfo();
@@ -182,13 +187,21 @@ public final class ViaBrandTracker {
 
             static BrandMetadata fromRawBrand(String rawBrand) {
                 if (rawBrand == null) {
+                    LOGGER.info("Brand payload was null; treating as empty");
                     return new BrandMetadata(new String[0], null, new String[0], false);
                 }
                 String sanitized = rawBrand.trim();
                 if (sanitized.isEmpty()) {
+                    LOGGER.info("Brand payload '{}' was empty after trim; treating as empty", rawBrand);
                     return new BrandMetadata(new String[0], null, new String[0], false);
                 }
                 String[] fragments = sanitized.split("\\u0000");
+                LOGGER.info(
+                    "Split raw brand payload '{}' into {} fragment(s): {}",
+                    rawBrand,
+                    fragments.length,
+                    Arrays.toString(fragments)
+                );
                 Set<String> orderedComponents = new LinkedHashSet<>();
                 for (String fragment : fragments) {
                     if (fragment == null) {
@@ -203,6 +216,10 @@ public final class ViaBrandTracker {
                 if (orderedComponents.isEmpty()) {
                     orderedComponents.add(sanitized.toLowerCase(Locale.ROOT));
                 }
+                LOGGER.info(
+                    "Normalized brand fragments into ordered component list: {}",
+                    Arrays.toString(orderedComponents.toArray(new String[0]))
+                );
                 List<String> viaWrappers = new ArrayList<>();
                 String primaryPlatform = null;
                 boolean requiresLegacy = false;
