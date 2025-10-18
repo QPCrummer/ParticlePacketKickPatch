@@ -12,25 +12,9 @@ import java.util.WeakHashMap;
  * that are sent to them.
  */
 public final class ViaBrandTracker {
-    private static final ThreadLocal<ClientConnection> CURRENT_CONNECTION = new ThreadLocal<>();
     private static final Map<ClientConnection, String> BRANDS = Collections.synchronizedMap(new WeakHashMap<>());
 
     private ViaBrandTracker() {
-    }
-
-    public static void pushConnection(ClientConnection connection) {
-        CURRENT_CONNECTION.set(connection);
-    }
-
-    public static void popConnection(ClientConnection connection) {
-        ClientConnection current = CURRENT_CONNECTION.get();
-        if (current == connection) {
-            CURRENT_CONNECTION.remove();
-        }
-    }
-
-    public static ClientConnection getCurrentConnection() {
-        return CURRENT_CONNECTION.get();
     }
 
     public static void setBrand(ClientConnection connection, String brand) {
