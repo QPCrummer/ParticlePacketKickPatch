@@ -136,13 +136,34 @@ public final class ViaBrandTracker {
                 LOGGER.info("Brand string was empty after normalization; modern particles will be used");
                 return false;
             }
+            boolean viaFabricDetected = normalized.contains("viafabric");
+            boolean viaFabricPlusDetected = normalized.contains("viafabricplus");
+            boolean viaVersionDetected = normalized.contains("viaversion");
+            boolean viaBackwardsDetected = normalized.contains("viabackwards") || normalized.contains("via-backwards");
+            boolean viaRewindDetected = normalized.contains("viarewind") || normalized.contains("via-rewind");
+            boolean viaForgeDetected = normalized.contains("viaforge");
             boolean fabricDetected = normalized.contains("fabric");
+            boolean viaKeywordDetected = normalized.contains("via");
+            boolean legacyTriggered = viaFabricDetected
+                || viaFabricPlusDetected
+                || viaVersionDetected
+                || viaBackwardsDetected
+                || viaRewindDetected
+                || viaForgeDetected
+                || (fabricDetected && viaKeywordDetected);
             LOGGER.info(
-                "Normalized brand='{}'; fabricDetected={}",
+                "Normalized brand='{}'; viaFabricDetected={}, viaFabricPlusDetected={}, viaVersionDetected={}, viaBackwardsDetected={}, viaRewindDetected={}, viaForgeDetected={}, fabricDetected={}, viaKeywordDetected={}",
                 normalized,
-                fabricDetected
+                viaFabricDetected,
+                viaFabricPlusDetected,
+                viaVersionDetected,
+                viaBackwardsDetected,
+                viaRewindDetected,
+                viaForgeDetected,
+                fabricDetected,
+                viaKeywordDetected
             );
-            return fabricDetected;
+            return legacyTriggered;
         }
     }
 }
