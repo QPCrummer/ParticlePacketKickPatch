@@ -48,6 +48,11 @@ public abstract class ParticleS2CPacketMixin implements PacketConnectionAttachme
     }
 
     private void noviaversionkick$writeLegacy(RegistryByteBuf buf) {
+        ParticleEffect effect = this.parameters;
+        if (effect == null) {
+            return;
+        }
+        ParticleTypes.PACKET_CODEC.encode(buf, effect);
         buf.writeBoolean(this.forceSpawn);
         buf.writeDouble(this.x);
         buf.writeDouble(this.y);
@@ -57,6 +62,5 @@ public abstract class ParticleS2CPacketMixin implements PacketConnectionAttachme
         buf.writeFloat(this.offsetZ);
         buf.writeFloat(this.speed);
         buf.writeInt(this.count);
-        ParticleTypes.PACKET_CODEC.encode(buf, this.parameters);
     }
 }
