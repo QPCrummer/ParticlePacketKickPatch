@@ -6,9 +6,14 @@ import org.apache.logging.log4j.Logger;
 import org.bacon.noviaversionkick.mixin.ClientConnectionAccessor;
 
 import java.net.SocketAddress;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.WeakHashMap;
 
 /**
@@ -131,39 +136,97 @@ public final class ViaBrandTracker {
                 LOGGER.info("No brand recorded; modern particles will be used");
                 return false;
             }
-            String normalized = brand.trim().toLowerCase(Locale.ROOT);
-            if (normalized.isEmpty()) {
+            BrandMetadata metadata = BrandMetadata.fromRawBrand(brand);
+            if (!metadata.hasComponents()) {
                 LOGGER.info("Brand string was empty after normalization; modern particles will be used");
                 return false;
             }
-            boolean viaFabricDetected = normalized.contains("viafabric");
-            boolean viaFabricPlusDetected = normalized.contains("viafabricplus");
-            boolean viaVersionDetected = normalized.contains("viaversion");
-            boolean viaBackwardsDetected = normalized.contains("viabackwards") || normalized.contains("via-backwards");
-            boolean viaRewindDetected = normalized.contains("viarewind") || normalized.contains("via-rewind");
-            boolean viaForgeDetected = normalized.contains("viaforge");
-            boolean fabricDetected = normalized.contains("fabric");
-            boolean viaKeywordDetected = normalized.contains("via");
-            boolean legacyTriggered = viaFabricDetected
-                || viaFabricPlusDetected
-                || viaVersionDetected
-                || viaBackwardsDetected
-                || viaRewindDetected
-                || viaForgeDetected
-                || (fabricDetected && viaKeywordDetected);
             LOGGER.info(
-                "Normalized brand='{}'; viaFabricDetected={}, viaFabricPlusDetected={}, viaVersionDetected={}, viaBackwardsDetected={}, viaRewindDetected={}, viaForgeDetected={}, fabricDetected={}, viaKeywordDetected={}",
-                normalized,
-                viaFabricDetected,
-                viaFabricPlusDetected,
-                viaVersionDetected,
-                viaBackwardsDetected,
-                viaRewindDetected,
-                viaForgeDetected,
-                fabricDetected,
-                viaKeywordDetected
+                "Brand analysis for {}: components={}, primaryPlatform='{}', viaWrappers={}",
+                describeConnection(connection),
+                metadata.describeComponents(),
+                metadata.primaryPlatform(),
+                Arrays.toString(metadata.viaWrappers())
             );
-            return legacyTriggered;
+            if (metadata.primaryPlatform() == null) {
+                LOGGER.info("Unable to determine a primary platform; defaulting to modern particles");
+                return false;
+            }
+            LOGGER.info(
+                "Primary platform '{}' does not require legacy particle encoding; modern particles will be used",
+                metadata.primaryPlatform()
+            );
+            return false;
+        }
+
+        private static final class BrandMetadata {
+            private final String[] components;
+            private final String primaryPlatform;
+            private final String[] viaWrappers;
+
+            private BrandMetadata(String[] components, String primaryPlatform, String[] viaWrappers) {
+                this.components = components;
+                this.primaryPlatform = primaryPlatform;
+                this.viaWrappers = viaWrappers;
+            }
+
+            static BrandMetadata fromRawBrand(String rawBrand) {
+                if (rawBrand == null) {
+                    return new BrandMetadata(new String[0], null, new String[0]);
+                }
+                String sanitized = rawBrand.trim();
+                if (sanitized.isEmpty()) {
+                    return new BrandMetadata(new String[0], null, new String[0]);
+                }
+                String[] fragments = sanitized.split("\\u0000");
+                Set<String> orderedComponents = new LinkedHashSet<>();
+                for (String fragment : fragments) {
+                    if (fragment == null) {
+                        continue;
+                    }
+                    String trimmed = fragment.trim();
+                    if (trimmed.isEmpty()) {
+                        continue;
+                    }
+                    orderedComponents.add(trimmed.toLowerCase(Locale.ROOT));
+                }
+                if (orderedComponents.isEmpty()) {
+                    orderedComponents.add(sanitized.toLowerCase(Locale.ROOT));
+                }
+                List<String> viaWrappers = new ArrayList<>();
+                String primaryPlatform = null;
+                for (String component : orderedComponents) {
+                    if (component.startsWith("via")) {
+                        viaWrappers.add(component);
+                    } else if (primaryPlatform == null) {
+                        primaryPlatform = component;
+                    }
+                }
+                if (primaryPlatform == null && !orderedComponents.isEmpty()) {
+                    primaryPlatform = orderedComponents.iterator().next();
+                }
+                return new BrandMetadata(
+                    orderedComponents.toArray(new String[0]),
+                    primaryPlatform,
+                    viaWrappers.toArray(new String[0])
+                );
+            }
+
+            boolean hasComponents() {
+                return this.components.length > 0;
+            }
+
+            String describeComponents() {
+                return Arrays.toString(this.components);
+            }
+
+            String primaryPlatform() {
+                return this.primaryPlatform;
+            }
+
+            String[] viaWrappers() {
+                return this.viaWrappers;
+            }
         }
     }
 }
